@@ -1,0 +1,3 @@
+git+https://github.com/clarivate/wosstarter_python_client.git
+rdflib==7.0.0
+nameparser
