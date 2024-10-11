@@ -8,7 +8,7 @@ from rdflib import Namespace, Graph, RDF, Literal, RDFS, XSD
 from rdflib.resource import Resource
 from time import strptime
 from nameparser import HumanName
-from namespaces import VIVO, BIBO, OBO, VCARD, WOS, D
+from namespaces import VIVO, BIBO, FABIO, OBO, VCARD, WOS, D
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,22 +31,13 @@ class Record(object):
 
     def authors(self):
         out = []
-        for au in self.root.names.authors:
-            out.append(au.display_name)
+        if self.root.names.authors:
+            for au in self.root.names.authors:
+                out.append(au.display_name)
         return out
-
-    def _identifier(self, tag):
-        for item in self.root.findall('other'):
-            if item.find('label').text == "Identifier.{}".format(tag):
-                return item.find('value').text
 
     def doi(self):
         return self.root.identifiers.doi
-
-    def _source(self, label):
-        for item in self.root.findall('source'):
-            if item.find('label').text == label:
-                return item.find('value').text
 
     def venue(self):
         return self.root.source.source_title
@@ -96,6 +87,149 @@ class Record(object):
         ToDo: add more specific types.
         """
         return BIBO.AcademicArticle
+
+    def vivo_types(self):
+        """
+        WOS record types, mapped to closest class included in VIVO ontology
+        https://webofscience.zendesk.com/hc/en-us/articles/26916283577745-Document-Types
+        :return: list
+        """
+        d = {
+            "Article": BIBO.AcademicArticle,
+            "Academic Article": BIBO.AcademicArticle,
+            "Abstract of Published Item": VIVO.Abstract,
+            "Art Exhibit Review": VIVO.Review,
+            "Biographical-Item": BIBO.Article,
+            "Book": BIBO.Book,
+            "Book Chapter": BIBO.Chapter,
+            "Book Review": VIVO.Review,
+            "Chronology": BIBO.AcadmicArticle,
+            "Correction": FABIO.Erratum,
+            "Correction, Addition": FABIO.Erratum,
+            "Dance Performance Review": VIVO.Review,
+            "Database Review": VIVO.Review,
+            "Data Set": VIVO.Dataset,
+            "Discussion": FABIO.Comment,
+            "Early Access": BIBO.AcademicArticle,
+            "Editorial Material": FABIO.Comment,
+            "English Abstract": VIVO.Abstract,
+            "Excerpt": BIBO.Article,
+            "Fiction, Creative Prose": BIBO.Article,
+            "Film Review": VIVO.Review,
+            "Hardware Review": VIVO.Review,
+            "Item About An Individual": BIBO.Article,
+            "Letter": BIBO.Letter,
+            "Meeting Abstract": VIVO.Abstract,
+            "Meeting Summary": BIBO.Report,
+            "Music Performance Review": VIVO.Review,
+            "Music Score": BIBO.AudioDocument,
+            "Music Score Review": VIVO.Review,
+            "News Item": VIVO.NewsRelease,
+            "Note": FABIO.Comment,
+            "Poetry": BIBO.Article,
+            "Proceedings Paper": BIBO.Proceedings,
+            "Record Review": VIVO.Review,
+            "Reprint": BIBO.AcadmicArticle,
+            "Review": VIVO.Review,
+            "Script": BIBO.Book,
+            "Software Review": VIVO.Review,
+            "TV Review, Radio Review": VIVO.Review,
+            "TV Review, Radio Review, Video Review": VIVO.Review,
+            "Theater Review": VIVO.Review,
+            "Main Cite": BIBO.AcadmicArticle,
+            "Item Withdraw": FABIO.Comment,
+            "Bibliography": BIBO.AcadmicArticle,
+            "Expression of Concern": FABIO.Comment,
+            "Meeting": BIBO.Proceedings,
+            "Data Paper": BIBO.AcadmicArticle,
+            "Retraction": FABIO.Comment,
+            "Press Digest": VIVO.NewsRelease
+            # VIVO ontology does not account for retractions or withdrawn publications
+            # "Withdrawn Publication": WOS.WithdrawnPublication,
+            # "Publication With Expression Of Concern": WOS.PubWithExpOfConcern,
+            # "Retracted Publication": WOS.RetractedPublication
+        }
+        dtypes = []
+        for wdt in self.root.source_types:
+            vtype = d.get(wdt)
+            if vtype is None:
+                logging.info("Publication type unknown for {}, {}.".format(self.ut, wdt))
+            else:
+                dtypes.append(vtype)
+        if dtypes == []:
+            return [BIBO.AcadmicArticle]
+        return dtypes
+
+    def wos_vivo_types(self):
+        """
+        WOS record types
+        https://webofscience.zendesk.com/hc/en-us/articles/26916283577745-Document-Types
+        :return: list
+        """
+        d = {
+            "Article": WOS.Article,
+            "Academic Article": WOS.Article,
+            "Abstract of Published Item": WOS.Abstract,
+            "Art Exhibit Review": WOS.ArtExhibitReview,
+            "Biographical-Item": WOS.BiographicalItem,
+            "Book": WOS.Book,
+            "Book Chapter": WOS.BookChapter,
+            "Book Review": WOS.BookReview,
+            "Chronology": WOS.Chronology,
+            "Correction": WOS.Correction,
+            "Correction, Addition": WOS.CorrectionEdition,
+            "Dance Performance Review": WOS.DancePerformanceReview,
+            "Database Review": WOS.DatabaseReview,
+            "Data Set": WOS.Dataset, # From DRCI
+            "Discussion": WOS.Discussion,
+            "Early Access": WOS.EarlyAccess,
+            "Editorial Material": WOS.EditorialMaterial,
+            "English Abstract": WOS.Abstract,
+            "Excerpt": WOS.Excerpt,
+            "Fiction, Creative Prose": WOS.FictionCreativeProse,
+            "Film Review": WOS.FilmReview,
+            "Hardware Review": WOS.HardwareReview,
+            "Item About An Individual": WOS.ItemAboutAnIndividual,
+            "Letter": WOS.Letter,
+            "Meeting Abstract": WOS.MeetingAbstract,
+            "Meeting Summary": WOS.MeetingSummary,
+            "Music Performance Review": WOS.MusicPerformanceReview,
+            "Music Score": WOS.MusicScore,
+            "Music Score Review": WOS.MusicScoreReview,
+            "News Item": WOS.NewsItem,
+            "Note": WOS.Note,
+            "Poetry": WOS.Poetry,
+            "Proceedings Paper": WOS.ProceedingsPaper,
+            "Record Review": WOS.RecordReview,
+            "Reprint": WOS.Reprint,
+            "Review": WOS.Review,
+            "Script": WOS.Script,
+            "Software Review": WOS.SoftwareReview,
+            "TV Review, Radio Review": WOS.TVRadioReview,
+            "TV Review, Radio Review, Video Review": WOS.TVRadioVideoReview,
+            "Theater Review": WOS.TheaterReview,
+            "Main Cite": WOS.MainCite,
+            "Item Withdraw": WOS.ItemWithdraw,
+            "Withdrawn Publication": WOS.WithdrawnPublication,
+            "Bibliography": WOS.Bibliography,
+            "Expression of Concern": WOS.ExpOfConcern,
+            "Meeting": WOS.Meeting,
+            "Publication With Expression Of Concern": WOS.PubWithExpOfConcern,
+            "Data Paper": WOS.DataPaper,
+            "Retraction": WOS.Retraction,
+            "Retracted Publication": WOS.RetractedPublication,
+            "Press Digest": WOS.PressDigest
+        }
+        dtypes = []
+        for wdt in self.root.source_types:
+            vtype = d.get(wdt)
+            if vtype is None:
+                logging.info("Publication type unknown for {}, {}.".format(self.ut, wdt))
+            else:
+                dtypes.append(vtype)
+        if dtypes == []:
+            return [WOS.Publication]
+        return dtypes
 
     def in_book(self):
         """
@@ -265,7 +399,14 @@ class Record(object):
         """
         g = Graph()
         pub = Resource(g, self.pub_uri)
-        pub.set(RDF.type, self.vivo_type())
+        for type in self.vivo_types():
+            pub.add(RDF.type, type)
+
+        # For more precise type mapping, uncomment these lines and load the
+        # Web of Science ontology to your VIVO instance
+        # for type in self.wos_vivo_types():
+        #     pub.add(RDF.type, type)
+
         pub.set(RDFS.label, Literal(self.title()))
         pub.set(VIVO.identifier, Literal(self.ut()))
         # Map WoS UT to customer property. Used by other Web of Science Group Python tools

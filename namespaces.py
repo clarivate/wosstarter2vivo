@@ -21,9 +21,9 @@ VCARD = Namespace('http://www.w3.org/2006/vcard/ns#')
 OBO = Namespace('http://purl.obolibrary.org/obo/')
 WOS = Namespace("http://webofscience.com/ontology/wos#")
 SCHEMA = Namespace("http://schema.org/")
-LOCAL = Namespace("https://evr.vcu.edu/ontology/")
 OCRE = Namespace("http://purl.org/net/OCRe/OCRe.owl#")
 WGS84 = Namespace("http://www.w3.org/2003/01/geo/wgs84_pos#")
+FABIO = Namespace("http://purl.org/spar/fabio/")
 
 #tmp graph for in memory graphs
 TMP = Namespace('http://localhost/tmp#')
